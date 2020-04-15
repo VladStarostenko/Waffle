@@ -11,7 +11,13 @@ use(solidity);
 describe('Doppelganger - Integration (called directly)', () => {
   const [wallet] = new MockProvider().getWallets();
 
-  it('mocking mechanism works', async () => {
+  it('throws readable error if mock was not set up for a method', async () => {
+    const mockCounter = await doppelganger(wallet, Counter.interface);
+
+    await expect(mockCounter.read()).to.be.revertedWith('Method not initialized');
+  });
+
+  it('mock resolve works', async () => {
     const mockCounter = await doppelganger(wallet, Counter.interface);
     await mockCounter.mock.read.returns(45291);
 
@@ -19,11 +25,22 @@ describe('Doppelganger - Integration (called directly)', () => {
     expect(ret.toNumber()).to.be.equal(45291);
   });
 
-  it('reverting works', async () => {
+  it('mock revert works', async () => {
     const mockCounter = await doppelganger(wallet, Counter.interface);
-    await mockCounter.read.reverts();
-    const {contract} = mockCounter;
+    await mockCounter.mock.read.reverts();
 
-    await expect(contract.read()).to.be.revertedWith('Mock revert');
+    await expect(mockCounter.read()).to.be.revertedWith('Mock revert');
+  });
+
+  it('mock with call arguments', async () => {
+    const mockCounter = await doppelganger(wallet, Counter.interface);
+    await mockCounter.mock.add.returns(1);
+    await mockCounter.mock.add.withArgs(1).returns(2);
+    await mockCounter.mock.add.withArgs(2).reverts();
+
+    expect(await mockCounter.add(0)).to.equal(1);
+    expect(await mockCounter.add(1)).to.equal(2);
+    await expect(mockCounter.add(2)).to.be.revertedWith('Mock revert');
+    expect(await mockCounter.add(3)).to.equal(1);
   });
 });

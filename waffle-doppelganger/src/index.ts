@@ -10,11 +10,19 @@ async function deployDoppelganger(wallet: Wallet) {
   return factory.deploy();
 }
 
-function stub(mockContract: Contract, encoder: utils.AbiCoder, func: FunctionDescription) {
+function stub(mockContract: Contract, encoder: utils.AbiCoder, func: FunctionDescription, params?: any[]) {
   return {
     returns: async (...args: any) => {
       const encoded = encoder.encode(func.outputs, args);
-      await mockContract.mockReturns(func.sighash, encoded);
+      const callData = params ? func.encode(params) : func.sighash;
+      await mockContract.mockReturns(callData, encoded);
+    },
+    reverts: async () => {
+      const callData = params ? func.encode(params) : func.sighash;
+      await mockContract.mockReverts(callData);
+    },
+    withArgs: (...args: any[]) => {
+      return stub(mockContract, encoder, func, args);
     }
   };
 }

@@ -10,4 +10,8 @@ contract Counter {
     function read() public view returns (uint) {
         return value;
     }
+
+    function add(uint a) public view returns (uint) {
+        return value + a;
+    }
 }
